@@ -1,0 +1,215 @@
+{
+  "active": true,
+  "connections": {
+    "Clean + normalise": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Remove duplicates",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Every Monday 08:00": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Read event leads sheet",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Read event leads sheet": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Clean + normalise",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Remove duplicates": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Upsert to HubSpot",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Upsert to HubSpot": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Post summary to #marketing-ops",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "id": "wf-event-cleanup",
+  "name": "Event lead cleanup",
+  "nodes": [
+    {
+      "id": "0fce0d87-aad1-5857-afad-b6dd0b8785af",
+      "name": "Every Monday 08:00",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        300
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5",
+          "name": "Google Sheets (ops)"
+        }
+      },
+      "id": "5fa9e44e-d5a4-5ff1-a953-4343e5254bfc",
+      "name": "Read event leads sheet",
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/EXAMPLE_SHEET_ID/edit"
+        },
+        "operation": "read",
+        "options": {},
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Raw leads"
+        }
+      },
+      "position": [
+        240,
+        300
+      ],
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5
+    },
+    {
+      "id": "cd21e04a-1a11-5514-9647-201d0d060739",
+      "name": "Clean + normalise",
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const r = item.json;\n  const email = (r['Email'] || '').trim().toLowerCase();\n  const [first, ...rest] = (r['Full name'] || '').trim().split(/\\s+/);\n  return { json: { email, firstname: first || '', lastname: rest.join(' '), company: (r['Company'] || '').trim(), lead_source: 'Event' } };\n}).filter(i => i.json.email.includes('@'));"
+      },
+      "position": [
+        480,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "91be383f-f148-52d4-9f9a-d114e1a24674",
+      "name": "Remove duplicates",
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "email",
+        "options": {}
+      },
+      "position": [
+        720,
+        300
+      ],
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 1.1
+    },
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "dcedb118-fa79-54be-ac6c-e04edf2041fd",
+      "name": "Upsert to HubSpot",
+      "parameters": {
+        "additionalFields": {
+          "companyName": "={{ $json.company }}",
+          "firstName": "={{ $json.firstname }}",
+          "lastName": "={{ $json.lastname }}"
+        },
+        "email": "={{ $json.email }}",
+        "operation": "upsert"
+      },
+      "position": [
+        960,
+        300
+      ],
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1
+    },
+    {
+      "credentials": {
+        "slackApi": {
+          "id": "3",
+          "name": "Slack bot"
+        }
+      },
+      "executeOnce": true,
+      "id": "31db76f3-50a5-51d7-9fa7-0a112f61e50f",
+      "name": "Post summary to #marketing-ops",
+      "parameters": {
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#marketing-ops"
+        },
+        "otherOptions": {},
+        "select": "channel",
+        "text": "=Event leads synced: {{ $items().length }} contacts upserted to HubSpot."
+      },
+      "position": [
+        1200,
+        300
+      ],
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "errorWorkflow": "wf-error-alerts",
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "Europe/London"
+  },
+  "tags": [
+    {
+      "name": "marketing-ops"
+    },
+    {
+      "name": "events"
+    },
+    {
+      "name": "hubspot"
+    }
+  ]
+}

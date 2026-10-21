@@ -1,0 +1,190 @@
+{
+  "active": true,
+  "connections": {
+    "Build handoff message": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Post to #cs-handoffs",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Closed won?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build handoff message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Deal stage changed": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get deal",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Get deal": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Closed won?",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "id": "wf-closed-won",
+  "name": "Closed-won handoff to CS",
+  "nodes": [
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "27a2f0c0-bc02-5019-8423-41d8ed319495",
+      "name": "Deal stage changed",
+      "parameters": {
+        "additionalFields": {},
+        "eventsUi": {
+          "eventValues": [
+            {
+              "name": "deal.propertyChange",
+              "property": "dealstage"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        300
+      ],
+      "type": "n8n-nodes-base.hubspotTrigger",
+      "typeVersion": 1,
+      "webhookId": "c9b69c42-82b4-509f-849f-4747a4ecfe37"
+    },
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "09d6d21d-3851-539d-8416-ec5c9954de73",
+      "name": "Get deal",
+      "parameters": {
+        "dealId": "={{ $json.objectId }}",
+        "filters": {},
+        "operation": "get",
+        "resource": "deal"
+      },
+      "position": [
+        240,
+        300
+      ],
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1
+    },
+    {
+      "id": "1f9b7403-b5b0-5106-947b-5bab8196a4ed",
+      "name": "Closed won?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.properties.dealstage.value }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "closedwon"
+            }
+          ]
+        }
+      },
+      "position": [
+        480,
+        300
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "id": "c026d97b-978a-5182-a02e-09968b18b463",
+      "name": "Build handoff message",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "text",
+              "type": "string",
+              "value": "=:tada: Closed won: {{ $json.properties.dealname.value }} ({{ $json.properties.amount.value }}). CS, please book kickoff within 5 working days."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        720,
+        300
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "slackApi": {
+          "id": "3",
+          "name": "Slack bot"
+        }
+      },
+      "id": "3721418c-43c3-5f0a-8d38-65e7838e071e",
+      "name": "Post to #cs-handoffs",
+      "parameters": {
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#cs-handoffs"
+        },
+        "otherOptions": {},
+        "select": "channel",
+        "text": "={{ $json.text }}"
+      },
+      "position": [
+        960,
+        300
+      ],
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "Europe/London"
+  },
+  "tags": [
+    {
+      "name": "revops"
+    },
+    {
+      "name": "handoff"
+    }
+  ]
+}

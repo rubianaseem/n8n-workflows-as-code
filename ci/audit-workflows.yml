@@ -1,0 +1,18 @@
+# Runs on every push and pull request: fails the check if a workflow in workflows/
+# contains a hard-coded secret or pinned test data.
+name: Audit n8n workflows
+on:
+  push:
+    paths: ["workflows/**", "n8n_versioner.py"]
+  pull_request:
+    paths: ["workflows/**", "n8n_versioner.py"]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python n8n_versioner.py audit workflows

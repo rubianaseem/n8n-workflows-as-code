@@ -1,0 +1,345 @@
+{
+  "active": true,
+  "connections": {
+    "Get contact + company": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Is it a business email?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HubSpot: new form submission": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get contact + company",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Is it a business email?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Segment by company size",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Mark personal email as nurture",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Round robin owner": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Set owner in HubSpot",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Segment by company size": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Round robin owner",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Round robin owner",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Round robin owner",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Set owner in HubSpot": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Tell owner in Slack",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "id": "wf-inbound-routing",
+  "name": "Inbound lead routing",
+  "nodes": [
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "7deadc6b-e692-58a5-96a1-f79982bd864d",
+      "name": "HubSpot: new form submission",
+      "parameters": {
+        "additionalFields": {},
+        "eventsUi": {
+          "eventValues": [
+            {
+              "name": "contact.creation"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        300
+      ],
+      "type": "n8n-nodes-base.hubspotTrigger",
+      "typeVersion": 1,
+      "webhookId": "396ab69e-52b3-5151-94cf-b01fc82b86ee"
+    },
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "57022881-964b-5002-931e-b94c089489cb",
+      "name": "Get contact + company",
+      "parameters": {
+        "additionalFields": {
+          "propertiesCollection": {
+            "propertiesValues": {
+              "properties": [
+                "email",
+                "company",
+                "country",
+                "numberofemployees",
+                "hs_lead_status",
+                "lifecyclestage"
+              ]
+            }
+          }
+        },
+        "contactId": "={{ $json.objectId }}",
+        "operation": "get"
+      },
+      "position": [
+        240,
+        300
+      ],
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1
+    },
+    {
+      "id": "0777dbf4-2333-545e-95e7-2f9deab55540",
+      "name": "Is it a business email?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.properties.email.value.split('@')[1] }}",
+              "operator": {
+                "operation": "notContains",
+                "type": "string"
+              },
+              "rightValue": "gmail.com,yahoo.com,hotmail.com,outlook.com"
+            }
+          ],
+          "options": {
+            "caseSensitive": false
+          }
+        }
+      },
+      "position": [
+        480,
+        300
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "id": "b32c24a1-a63a-57f2-a5a9-9d1ab8d828ad",
+      "name": "Segment by company size",
+      "parameters": {
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "SMB"
+        },
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ Number($json.properties.numberofemployees?.value || 0) }}",
+                    "operator": {
+                      "operation": "gte",
+                      "type": "number"
+                    },
+                    "rightValue": 1000
+                  }
+                ]
+              },
+              "outputKey": "Enterprise"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ Number($json.properties.numberofemployees?.value || 0) }}",
+                    "operator": {
+                      "operation": "gte",
+                      "type": "number"
+                    },
+                    "rightValue": 200
+                  }
+                ]
+              },
+              "outputKey": "Mid-market"
+            }
+          ]
+        }
+      },
+      "position": [
+        720,
+        200
+      ],
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3
+    },
+    {
+      "id": "d6f7141c-a64a-5b9b-ba39-390afcd86393",
+      "name": "Round robin owner",
+      "parameters": {
+        "jsCode": "const pools = {\n  Enterprise: ['ae.priya@example.com', 'ae.tom@example.com'],\n  'Mid-market': ['ae.sam@example.com', 'ae.lena@example.com'],\n  SMB: ['sdr.joe@example.com']\n};\nconst seg = $input.first().json.segment || 'SMB';\nconst pool = pools[seg];\nconst i = $getWorkflowStaticData('global')[seg] = (($getWorkflowStaticData('global')[seg] || 0) + 1) % pool.length;\nreturn [{ json: { ...$input.first().json, owner_email: pool[i] } }];"
+      },
+      "position": [
+        960,
+        200
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "30c714f1-b94e-5559-942a-ab08c17ee1a6",
+      "name": "Set owner in HubSpot",
+      "parameters": {
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "hubspot_owner_email",
+                "value": "={{ $json.owner_email }}"
+              }
+            ]
+          }
+        },
+        "email": "={{ $json.properties.email.value }}",
+        "operation": "upsert"
+      },
+      "position": [
+        1200,
+        200
+      ],
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1
+    },
+    {
+      "credentials": {
+        "slackApi": {
+          "id": "3",
+          "name": "Slack bot"
+        }
+      },
+      "id": "4b0e5f45-089f-50e7-ab02-ad175432c189",
+      "name": "Tell owner in Slack",
+      "parameters": {
+        "otherOptions": {},
+        "select": "user",
+        "text": "=New inbound lead routed to you: {{ $json.properties.email.value }} ({{ $json.properties.company?.value }})",
+        "user": {
+          "__rl": true,
+          "mode": "username",
+          "value": "={{ $json.owner_email.split('@')[0] }}"
+        }
+      },
+      "position": [
+        1440,
+        200
+      ],
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2
+    },
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "403090e0-8b12-5961-9970-f2690540012a",
+      "name": "Mark personal email as nurture",
+      "parameters": {
+        "additionalFields": {
+          "leadStatus": "UNQUALIFIED"
+        },
+        "email": "={{ $json.properties.email.value }}",
+        "operation": "upsert"
+      },
+      "position": [
+        720,
+        440
+      ],
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "errorWorkflow": "wf-error-alerts",
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "Europe/London"
+  },
+  "tags": [
+    {
+      "name": "revops"
+    },
+    {
+      "name": "routing"
+    },
+    {
+      "name": "hubspot"
+    }
+  ]
+}
