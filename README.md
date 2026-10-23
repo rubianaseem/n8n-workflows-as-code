@@ -1,4 +1,4 @@
-# 🗂️ n8n Workflows as Code
+# n8n Workflows as Code
 
 **Keep every n8n workflow in GitHub, see exactly what changed in plain English, and stop API keys and customer data from sneaking into your repo.**
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 🧠 The pain point
+## The pain point
 
 I build a lot of GTM automation in n8n. Its version history lives inside n8n, the built-in Git sync is on the Business and Enterprise plans, and everyone else downloads a JSON file now and then. Backing up the JSON is the easy part. What I wanted was what a RevOps team cares about: *what did this change do to routing*, and *did someone just commit our HubSpot token*.
 
@@ -15,7 +15,7 @@ I build a lot of GTM automation in n8n. Its version history lives inside n8n, th
 
 ---
 
-## ✨ What it does
+## What it does
 
 - **One command sync:** `python n8n_versioner.py sync` pulls exports, shows what changed, cleans, audits, and updates the inventory and changelog
 - **Diffs a human can read:** nodes added, removed and renamed, the exact setting that changed (`200 → 250`), and how the flow was rewired
@@ -26,7 +26,7 @@ I build a lot of GTM automation in n8n. Its version history lives inside n8n, th
 
 ---
 
-## 🗺 Where each step runs
+## Where each step runs
 
 1. **GitHub** holds the code and your workflow files. Clone it or click **Code → Download ZIP**.
 2. **n8n** is where your workflows run. Nothing here changes them; you download exports into `exports/`, or let the script fetch them with an n8n API key.
@@ -38,7 +38,7 @@ I build a lot of GTM automation in n8n. Its version history lives inside n8n, th
 
 ---
 
-## 🚀 Quick start
+## Quick start
 
 ```bash
 git clone https://github.com/rubianaseem/n8n-workflows-as-code.git
@@ -51,7 +51,7 @@ git diff --stat
 
 ---
 
-## 📋 Example output
+## Example output
 
 From `python n8n_versioner.py sync` on the sample exports, with no API key:
 
@@ -73,7 +73,7 @@ After `clean`, the key is replaced with `__REDACTED_SECRET__` and the pinned dat
 
 ---
 
-## 📚 More
+## More
 
 - [SETUP.md](SETUP.md): Claude, your real n8n workflows, switching on the GitHub check, extending it, troubleshooting
 - [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md): walk through `n8n_versioner.py` line by line

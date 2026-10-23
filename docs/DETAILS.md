@@ -134,13 +134,13 @@ Next: review with `git diff`, then `git add -A && git commit -m "Sync n8n workfl
 
 Notice the order: the incoming exports had **2 blocking issues** (an API token typed straight into the new enrichment step's header, and a pinned test contact). After `clean`, the key is replaced with `__REDACTED_SECRET__` and the pinned data is gone, so what lands in Git has **0 blocking issues**, and the warning tells you to set up a proper credential and rotate the key. The token in the sample is fake.
 
-## 💸 Cost
+## Cost
 
 - **No API key:** free. Everything runs locally.
 - **With Claude:** one short request per `sync` that finds changes, roughly a couple of thousand tokens in and a few hundred out. Check current pricing on [Anthropic's pricing page](https://www.anthropic.com/pricing); for a few syncs a week it's pennies.
 - **n8n API:** no extra cost from this tool, but check your n8n plan includes API access.
 
-## 🔄 Swap the stack
+## Swap the stack
 
 | This repo uses | Swap for | What changes |
 |---|---|---|
@@ -150,14 +150,14 @@ Notice the order: the incoming exports had **2 blocking issues** (an API token t
 | Claude | Any LLM | Replace the body of `llm_summary` |
 | `sync` by hand | A Git pre-commit hook | Run `python n8n_versioner.py audit workflows` in `.git/hooks/pre-commit` |
 
-## 🛠 Customise for your stack
+## Customise for your stack
 
 - **Add your own secret patterns** (Apollo, ZoomInfo, Clay webhooks, an internal API) to `SECRET_PATTERNS`. One line each: pattern and label.
 - **Make warnings blocking:** if every live workflow *must* have an error workflow, change that `("WARN", ...)` to `("BLOCK", ...)` in `audit_workflow`.
 - **Organise by team:** put workflows in `workflows/revops/`, `workflows/marketing-ops/` and point `audit` at each folder.
 - **Use real owners:** tag workflows in n8n with an owner name and they'll show up in `WORKFLOWS.md`.
 
-## 🧭 How this runs today (and what production would add)
+## How this runs today (and what production would add)
 
 **Today:** it runs on my laptop against sample exports that I wrote to look like real GTM workflows (routing, event clean-up, closed-won handoff, error alerts). The pull from the n8n API is written against n8n's public API (`GET /api/v1/workflows` with an `X-N8N-API-KEY` header), and is mocked by `sample_exports/` when no key is set. The secret patterns cover the common formats, not every one; treat it as a safety net, not a guarantee.
 
