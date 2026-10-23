@@ -86,25 +86,25 @@ No N8N_BASE_URL/N8N_API_KEY set and nothing in exports/, so using the sample exp
 
 **Details**
 
-### ✏️ Closed-won handoff to CS
-- 🔧 **Post to #cs-handoffs**: `channelId.value`: #cs-handoffs → #cs-onboarding
-### 🆕 Error alerts (new workflow, 2 nodes)
-### ✏️ Inbound lead routing
-- ➕ added node **Enrich company domain** (httpRequest)
-- ➕ added node **Old Slack DM (unused)** (slack)
-- 🔧 **Round robin owner**: code changed, removed line(s): 'Mid-market': ['ae.sam@example.com', 'ae.lena@example.com'],, added line(s): 'Mid-market': ['ae.sam@example.com', 'ae.lena@example.com', 'ae.kofi@example.com'],
-- 🔧 **Segment by company size**: `rules.values.1.conditions.conditions.0.rightValue`: 200 → 250
-- 🔗 now connects Enrich company domain (output 0) → Is it a business email?
-- 🔗 now connects Get contact + company (output 0) → Enrich company domain
-- ✂️ no longer connects Get contact + company (output 0) → Is it a business email?
+### EDITED Closed-won handoff to CS
+- CHANGED **Post to #cs-handoffs**: `channelId.value`: #cs-handoffs → #cs-onboarding
+### NEW Error alerts (new workflow, 2 nodes)
+### EDITED Inbound lead routing
+- ADDED node **Enrich company domain** (httpRequest)
+- ADDED node **Old Slack DM (unused)** (slack)
+- CHANGED **Round robin owner**: code changed, removed line(s): 'Mid-market': ['ae.sam@example.com', 'ae.lena@example.com'],, added line(s): 'Mid-market': ['ae.sam@example.com', 'ae.lena@example.com', 'ae.kofi@example.com'],
+- CHANGED **Segment by company size**: `rules.values.1.conditions.conditions.0.rightValue`: 200 → 250
+- LINK now connects Enrich company domain (output 0) → Is it a business email?
+- LINK now connects Get contact + company (output 0) → Enrich company domain
+- UNLINKED no longer connects Get contact + company (output 0) → Is it a business email?
 
 === Audit of the incoming exports (before cleaning) ===
 Auditing sample_exports/ …
-⚠️  Closed-won handoff to CS (Closed-won handoff to CS.json, 5 nodes)
+WARN Closed-won handoff to CS (Closed-won handoff to CS.json, 5 nodes)
      WARN: active workflow has no error workflow set, so failures are silent. Set Settings > Error workflow in n8n.
-✅ Error alerts (Error alerts.json, 2 nodes)
-✅ Event lead cleanup (Event lead cleanup.json, 6 nodes)
-⛔ Inbound lead routing (Inbound lead routing.json, 10 nodes)
+OK Error alerts (Error alerts.json, 2 nodes)
+OK Event lead cleanup (Event lead cleanup.json, 6 nodes)
+BLOCKED Inbound lead routing (Inbound lead routing.json, 10 nodes)
      BLOCK: Bearer token typed into a header hard-coded in node 'Enrich company domain' (headerParameters.parameters.0.value). Move it into an n8n credential and rotate the key.
      WARN: node 'Old Slack DM (unused)' is disabled. Delete it or note why it's kept.
      BLOCK: pinned test data on HubSpot: new form submission. It can hold real customer records; unpin it or run `clean` before committing.
@@ -112,16 +112,16 @@ Auditing sample_exports/ …
 2 blocking issue(s), 2 warning(s).
 
 === Clean + save ===
-  🔒 redacted a hard-coded secret in Inbound lead routing: Enrich company domain (headerParameters.parameters.0.value)
+  SECRET redacted a hard-coded secret in Inbound lead routing: Enrich company domain (headerParameters.parameters.0.value)
 Cleaned 4 workflows into workflows/ (volatile fields, pinned data and secrets removed, keys sorted).
 
 === Audit of what will be committed ===
 Auditing workflows/ …
-⚠️  Closed-won handoff to CS (closed-won-handoff.json, 5 nodes)
+WARN Closed-won handoff to CS (closed-won-handoff.json, 5 nodes)
      WARN: active workflow has no error workflow set, so failures are silent. Set Settings > Error workflow in n8n.
-✅ Error alerts (error-alerts.json, 2 nodes)
-✅ Event lead cleanup (event-lead-cleanup.json, 6 nodes)
-⚠️  Inbound lead routing (inbound-lead-routing.json, 10 nodes)
+OK Error alerts (error-alerts.json, 2 nodes)
+OK Event lead cleanup (event-lead-cleanup.json, 6 nodes)
+WARN Inbound lead routing (inbound-lead-routing.json, 10 nodes)
      WARN: a secret was redacted from node 'Enrich company domain' (headerParameters.parameters.0.value). Store it as an n8n credential, rotate the old key, then re-export.
      WARN: node 'Old Slack DM (unused)' is disabled. Delete it or note why it's kept.
 

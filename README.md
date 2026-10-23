@@ -58,10 +58,10 @@ From `python n8n_versioner.py sync` on the sample exports, with no API key:
 ```text
 === What changed ===
 - Inbound lead routing: adds Enrich company domain, Old Slack DM (unused); edits Round robin owner, Segment by company size; rewires the flow.
-- 🔧 **Segment by company size**: `rules.values.1.conditions.conditions.0.rightValue`: 200 → 250
+- CHANGED **Segment by company size**: `rules.values.1.conditions.conditions.0.rightValue`: 200 → 250
 
 === Audit of the incoming exports (before cleaning) ===
-⛔ Inbound lead routing (Inbound lead routing.json, 10 nodes)
+BLOCKED Inbound lead routing (Inbound lead routing.json, 10 nodes)
      BLOCK: Bearer token typed into a header hard-coded in node 'Enrich company domain' (headerParameters.parameters.0.value). Move it into an n8n credential and rotate the key.
 2 blocking issue(s), 2 warning(s).
 
