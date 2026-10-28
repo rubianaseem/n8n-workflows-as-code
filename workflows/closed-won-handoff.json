@@ -50,6 +50,53 @@
   "name": "Closed-won handoff to CS",
   "nodes": [
     {
+      "id": "c026d97b-978a-5182-a02e-09968b18b463",
+      "name": "Build handoff message",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "text",
+              "type": "string",
+              "value": "=:tada: Closed won: {{ $json.properties.dealname.value }} ({{ $json.properties.amount.value }}). CS, please book kickoff within 5 working days."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        720,
+        300
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "1f9b7403-b5b0-5106-947b-5bab8196a4ed",
+      "name": "Closed won?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.properties.dealstage.value }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "closedwon"
+            }
+          ]
+        }
+      },
+      "position": [
+        480,
+        300
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
       "credentials": {
         "hubspotAppToken": {
           "id": "7",
@@ -100,53 +147,6 @@
       "typeVersion": 2.1
     },
     {
-      "id": "1f9b7403-b5b0-5106-947b-5bab8196a4ed",
-      "name": "Closed won?",
-      "parameters": {
-        "conditions": {
-          "combinator": "and",
-          "conditions": [
-            {
-              "leftValue": "={{ $json.properties.dealstage.value }}",
-              "operator": {
-                "operation": "equals",
-                "type": "string"
-              },
-              "rightValue": "closedwon"
-            }
-          ]
-        }
-      },
-      "position": [
-        480,
-        300
-      ],
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2
-    },
-    {
-      "id": "c026d97b-978a-5182-a02e-09968b18b463",
-      "name": "Build handoff message",
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "name": "text",
-              "type": "string",
-              "value": "=:tada: Closed won: {{ $json.properties.dealname.value }} ({{ $json.properties.amount.value }}). CS, please book kickoff within 5 working days."
-            }
-          ]
-        },
-        "options": {}
-      },
-      "position": [
-        720,
-        300
-      ],
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4
-    },
-    {
       "credentials": {
         "slackApi": {
           "id": "3",
@@ -159,7 +159,7 @@
         "channelId": {
           "__rl": true,
           "mode": "name",
-          "value": "#cs-handoffs"
+          "value": "#cs-onboarding"
         },
         "otherOptions": {},
         "select": "channel",
@@ -181,10 +181,10 @@
   },
   "tags": [
     {
-      "name": "revops"
+      "name": "handoff"
     },
     {
-      "name": "handoff"
+      "name": "revops"
     }
   ]
 }

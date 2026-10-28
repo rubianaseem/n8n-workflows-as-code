@@ -1,12 +1,23 @@
 {
   "active": true,
   "connections": {
-    "Get contact + company": {
+    "Enrich company domain": {
       "main": [
         [
           {
             "index": 0,
             "node": "Is it a business email?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Get contact + company": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Enrich company domain",
             "type": "main"
           }
         ]
@@ -93,31 +104,28 @@
   "name": "Inbound lead routing",
   "nodes": [
     {
-      "credentials": {
-        "hubspotAppToken": {
-          "id": "7",
-          "name": "HubSpot (private app)"
-        }
-      },
-      "id": "7deadc6b-e692-58a5-96a1-f79982bd864d",
-      "name": "HubSpot: new form submission",
+      "id": "66f0aeef-7351-53c6-84da-4218f1913bfc",
+      "name": "Enrich company domain",
       "parameters": {
-        "additionalFields": {},
-        "eventsUi": {
-          "eventValues": [
+        "headerParameters": {
+          "parameters": [
             {
-              "name": "contact.creation"
+              "name": "Authorization",
+              "value": "__REDACTED_SECRET__"
             }
           ]
-        }
+        },
+        "method": "GET",
+        "options": {},
+        "sendHeaders": true,
+        "url": "=https://api.enrichment.example.com/v1/companies?domain={{ $json.properties.email.value.split('@')[1] }}"
       },
       "position": [
-        0,
-        300
+        480,
+        160
       ],
-      "type": "n8n-nodes-base.hubspotTrigger",
-      "typeVersion": 1,
-      "webhookId": "396ab69e-52b3-5151-94cf-b01fc82b86ee"
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
     },
     {
       "credentials": {
@@ -154,6 +162,33 @@
       "typeVersion": 2.1
     },
     {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "7deadc6b-e692-58a5-96a1-f79982bd864d",
+      "name": "HubSpot: new form submission",
+      "parameters": {
+        "additionalFields": {},
+        "eventsUi": {
+          "eventValues": [
+            {
+              "name": "contact.creation"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        300
+      ],
+      "type": "n8n-nodes-base.hubspotTrigger",
+      "typeVersion": 1,
+      "webhookId": "396ab69e-52b3-5151-94cf-b01fc82b86ee"
+    },
+    {
       "id": "0777dbf4-2333-545e-95e7-2f9deab55540",
       "name": "Is it a business email?",
       "parameters": {
@@ -179,6 +214,64 @@
         300
       ],
       "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7",
+          "name": "HubSpot (private app)"
+        }
+      },
+      "id": "403090e0-8b12-5961-9970-f2690540012a",
+      "name": "Mark personal email as nurture",
+      "parameters": {
+        "additionalFields": {
+          "leadStatus": "UNQUALIFIED"
+        },
+        "email": "={{ $json.properties.email.value }}",
+        "operation": "upsert"
+      },
+      "position": [
+        720,
+        440
+      ],
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1
+    },
+    {
+      "credentials": {
+        "slackApi": {
+          "id": "3",
+          "name": "Slack bot"
+        }
+      },
+      "disabled": true,
+      "id": "44fbdf8d-ad33-5517-ae98-bec4c053e749",
+      "name": "Old Slack DM (unused)",
+      "parameters": {
+        "otherOptions": {},
+        "select": "user",
+        "text": "test"
+      },
+      "position": [
+        1440,
+        420
+      ],
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "d6f7141c-a64a-5b9b-ba39-390afcd86393",
+      "name": "Round robin owner",
+      "parameters": {
+        "jsCode": "const pools = {\n  Enterprise: ['ae.priya@example.com', 'ae.tom@example.com'],\n  'Mid-market': ['ae.sam@example.com', 'ae.lena@example.com', 'ae.kofi@example.com'],\n  SMB: ['sdr.joe@example.com']\n};\nconst seg = $input.first().json.segment || 'SMB';\nconst pool = pools[seg];\nconst i = $getWorkflowStaticData('global')[seg] = (($getWorkflowStaticData('global')[seg] || 0) + 1) % pool.length;\nreturn [{ json: { ...$input.first().json, owner_email: pool[i] } }];"
+      },
+      "position": [
+        960,
+        200
+      ],
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2
     },
     {
@@ -215,7 +308,7 @@
                       "operation": "gte",
                       "type": "number"
                     },
-                    "rightValue": 200
+                    "rightValue": 250
                   }
                 ]
               },
@@ -230,19 +323,6 @@
       ],
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3
-    },
-    {
-      "id": "d6f7141c-a64a-5b9b-ba39-390afcd86393",
-      "name": "Round robin owner",
-      "parameters": {
-        "jsCode": "const pools = {\n  Enterprise: ['ae.priya@example.com', 'ae.tom@example.com'],\n  'Mid-market': ['ae.sam@example.com', 'ae.lena@example.com'],\n  SMB: ['sdr.joe@example.com']\n};\nconst seg = $input.first().json.segment || 'SMB';\nconst pool = pools[seg];\nconst i = $getWorkflowStaticData('global')[seg] = (($getWorkflowStaticData('global')[seg] || 0) + 1) % pool.length;\nreturn [{ json: { ...$input.first().json, owner_email: pool[i] } }];"
-      },
-      "position": [
-        960,
-        200
-      ],
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2
     },
     {
       "credentials": {
@@ -299,29 +379,6 @@
       ],
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2
-    },
-    {
-      "credentials": {
-        "hubspotAppToken": {
-          "id": "7",
-          "name": "HubSpot (private app)"
-        }
-      },
-      "id": "403090e0-8b12-5961-9970-f2690540012a",
-      "name": "Mark personal email as nurture",
-      "parameters": {
-        "additionalFields": {
-          "leadStatus": "UNQUALIFIED"
-        },
-        "email": "={{ $json.properties.email.value }}",
-        "operation": "upsert"
-      },
-      "position": [
-        720,
-        440
-      ],
-      "type": "n8n-nodes-base.hubspot",
-      "typeVersion": 2.1
     }
   ],
   "pinData": {},
@@ -333,13 +390,13 @@
   },
   "tags": [
     {
+      "name": "hubspot"
+    },
+    {
       "name": "revops"
     },
     {
       "name": "routing"
-    },
-    {
-      "name": "hubspot"
     }
   ]
 }

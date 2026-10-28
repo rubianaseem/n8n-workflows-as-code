@@ -1,0 +1,68 @@
+{
+  "active": true,
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Alert #gtm-alerts",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "id": "wf-error-alerts",
+  "name": "Error alerts",
+  "nodes": [
+    {
+      "credentials": {
+        "slackApi": {
+          "id": "3",
+          "name": "Slack bot"
+        }
+      },
+      "id": "9884fe5b-244d-5d72-a81a-f078bcc0fac7",
+      "name": "Alert #gtm-alerts",
+      "parameters": {
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#gtm-alerts"
+        },
+        "otherOptions": {},
+        "select": "channel",
+        "text": "=:rotating_light: n8n workflow failed: {{ $json.workflow.name }}, node {{ $json.execution.lastNodeExecuted }}. Error: {{ $json.execution.error.message }}. Execution: {{ $json.execution.url }}"
+      },
+      "position": [
+        240,
+        300
+      ],
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "7be59848-d80d-5e38-9f0f-be05f24d8b07",
+      "name": "Error Trigger",
+      "parameters": {},
+      "position": [
+        0,
+        300
+      ],
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "Europe/London"
+  },
+  "tags": [
+    {
+      "name": "ops"
+    }
+  ]
+}

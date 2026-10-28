@@ -1,41 +1,42 @@
-# Walk through it line by line: n8n Workflows as Code
+# Walkthrough: versioning GTM automation like code
 
-The code explained step by step, so you can learn it rather than just run it. Back to the [README](../README.md).
+## Why GTM engineering cares
 
-The whole tool is one file, [`n8n_versioner.py`](../n8n_versioner.py). These are the parts worth reading first.
+Inbound routers, event-lead cleanups, and closed-won handoffs write to HubSpot and ping Slack. A silent failure or a hard-coded token is a CRM incident. Treat the JSON like application code: review it, redact it, and keep a history outside n8n.
 
-**1. What an n8n workflow file is.** An export is JSON with two main parts: `nodes` (each step, with its `type` like `n8n-nodes-base.hubspot` and its `parameters`) and `connections` (which node's output goes into which node). Everything else is metadata.
+## 1. Keep a pack in `workflows/`
 
-**2. Removing noise (`VOLATILE_TOP_LEVEL` and `clean_workflow`).**
+This repo ships three educational GTM flows:
 
-```python
-VOLATILE_TOP_LEVEL = {"updatedAt", "createdAt", "versionId", "meta", "triggerCount", ...}
-wf = {k: v for k, v in wf.items() if k not in VOLATILE_TOP_LEVEL}
-```
+- `inbound-lead-routing.json` — form trigger, enrich, segment, round-robin
+- `event-lead-cleanup.json` — post-event list hygiene
+- `closed-won-handoff.json` — CS handoff on closed-won
 
-n8n changes `versionId` and `updatedAt` every time you hit save, even if nothing else changed. If those stay in the file, every commit looks like a change. The dictionary comprehension keeps every key *except* those. Then `sorted(..., key=lambda n: n.get("name"))` puts nodes in name order and `json.dumps(..., indent=2, sort_keys=True)` writes one setting per line, so Git shows a one-line change as one line.
+Run `python n8n_versioner.py sync` against `sample_exports/` with no n8n connection.
 
-**3. Finding secrets (`SECRET_PATTERNS`, `find_secret`, `redact`).**
+## 2. What `sync` does
 
-```python
-(r"\bpat-(na1|eu1)-[0-9a-f-]{20,}", "HubSpot private app token"),
-(r"(?i)bearer\s+[A-Za-z0-9._-]{20,}", "Bearer token typed into a header"),
-```
+1. **pull** — API, `exports/`, or `sample_exports/`
+2. **diff** — plain-English change summary (Claude optional)
+3. **audit** — secrets, pinData, orphans, missing error workflow
+4. **clean** — strip volatile fields, redact secrets
+5. **inventory** — refresh `WORKFLOWS.md`
+6. **changelog** — append `CHANGELOG.md`
 
-Each line is a regular expression (a text pattern) and a label. `redact()` walks every value in every node's parameters. It's *recursive*: if it meets a dictionary or a list it calls itself on each item, and when it reaches a plain string it checks the patterns and swaps any match for `__REDACTED_SECRET__`. Credentials stored properly in n8n only appear as `{"id": "7", "name": "HubSpot (private app)"}`, so they're untouched.
+## 3. Review before you merge
 
-**4. Reading the change (`flatten` and `diff_workflow`).**
+`python gtm_workflow_review.py` compares a baseline under `workflows/` to a proposed JSON (see `sample_review/`). It layers GTM checks on top of the versioner audit:
 
-```python
-fo, fn = flatten(old_node["parameters"]), flatten(new_node["parameters"])
-for key in sorted(set(fo) | set(fn)):
-    if fo.get(key) != fn.get(key): ...
-```
+| Category | Why it matters |
+| --- | --- |
+| `secrets_or_hygiene` | Tokens in git get copied forever |
+| `unsafe_crm_write` | Automation forcing Customer/Opportunity corrupts funnel math |
+| `hardcoded_email` | Staff leave; routing breaks |
+| `missing_error_branch` | HubSpot 429s leave half-updated contacts |
+| `structure` | Orphan nodes and silent active flows |
 
-`flatten` turns nested settings into one level, so `{"rules": {"values": [{...: 200}]}}` becomes `rules.values.1....rightValue: 200`. Comparing two flat dictionaries is then just "for every key in either, is the value different?" `set(fo) | set(fn)` means *all keys in either version*, which is how added and removed settings are caught too. Nodes are matched by `id`, so a renamed node shows as a rename, not a delete plus an add.
+Outputs: PR-style `out/gtm_review_brief.md` and `out/gtm_review_checklist.csv`. Exit code 1 on blocking findings so you can gate a local check.
 
-**5. Rewiring (`edges`).** Each connection becomes a tuple `(from_node, output_number, to_node)`. Put old and new into sets and `new - old` is every link added, `old - new` every link removed.
+## 4. CI note
 
-**6. Claude, only if you want it (`llm_summary`).** If `ANTHROPIC_API_KEY` isn't set, it returns `None` and the rule-based summary is used. If it is set, the detailed diff is sent to Claude with an instruction to explain the behaviour change for a sales ops reader and not invent anything. Any error falls back to the rules.
-
-**7. Making CI fail (`audit` return value).** `audit()` returns `1` if there's a blocking issue, and `sys.exit(1)` makes the command "fail". That's all GitHub Actions needs: [`ci/audit-workflows.yml`](../ci/audit-workflows.yml), once moved into `.github/workflows/`, runs the audit on every push and shows a red cross if it fails.
+The GitHub token used to publish these repos may lack the `workflow` scope. Keep examples under `ci/audit-workflows.yml`, not `.github/workflows/`, until that scope is added.

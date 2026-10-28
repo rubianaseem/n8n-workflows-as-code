@@ -106,3 +106,17 @@ Ask it to run the script after every change, and read the diff it made before yo
 | A workflow appears twice in `workflows/` | It was re-created in n8n with a new ID. Delete the old file once you've checked it's the same workflow |
 | Claude summary skipped | The message says why (bad key, network). The rule-based summary is used instead |
 | GitHub check is red | Run `python n8n_versioner.py audit workflows` locally; it prints the node and setting that tripped it |
+
+
+## GTM workflow review
+
+```bash
+python gtm_workflow_review.py \
+  --baseline workflows/inbound-lead-routing.json \
+  --proposed sample_review/inbound-lead-routing.proposed.json \
+  --output out/ --no-llm
+```
+
+Or: `python n8n_versioner.py review --no-llm`.
+
+Blocking findings exit 1. Fix secrets and unsafe CRM writes before you commit. Claude is optional for polishing the brief.

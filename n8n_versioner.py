@@ -11,6 +11,7 @@ Commands
             and missing error handling. Exits 1 on blocking issues, so it works as a CI check.
   inventory Write WORKFLOWS.md: one table of every workflow, its trigger, systems and owner tags.
   sync      pull + diff + clean + audit + inventory in one go, and write CHANGELOG.md.
+  review    GTM risk review of a proposed workflow (see gtm_workflow_review.py).
 
 It never changes anything inside n8n. It only reads exports and writes files in this folder.
 Claude is optional: with ANTHROPIC_API_KEY set, the change summary is written by Claude;
@@ -451,6 +452,7 @@ def main():
     s = sub.add_parser("audit"); s.add_argument("folder", nargs="?", default=str(WORKFLOWS_DIR))
     sub.add_parser("inventory")
     s = sub.add_parser("sync"); s.add_argument("--source", choices=["auto", "api", "sample"], default="auto")
+    s = sub.add_parser("review"); s.add_argument("--proposed"); s.add_argument("--baseline"); s.add_argument("--output"); s.add_argument("--no-llm", action="store_true")
     a = p.parse_args()
     if a.cmd == "pull":
         pull(a.source)
@@ -464,6 +466,19 @@ def main():
         inventory()
     elif a.cmd == "sync":
         sys.exit(sync(a.source))
+    elif a.cmd == "review":
+        import gtm_workflow_review as gr
+        argv = ["gtm_workflow_review.py"]
+        if a.proposed:
+            argv += ["--proposed", a.proposed]
+        if a.baseline:
+            argv += ["--baseline", a.baseline]
+        if a.output:
+            argv += ["--output", a.output]
+        if a.no_llm:
+            argv += ["--no-llm"]
+        sys.argv = argv
+        raise SystemExit(gr.main())
 
 
 if __name__ == "__main__":

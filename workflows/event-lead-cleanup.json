@@ -61,6 +61,19 @@
   "name": "Event lead cleanup",
   "nodes": [
     {
+      "id": "cd21e04a-1a11-5514-9647-201d0d060739",
+      "name": "Clean + normalise",
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const r = item.json;\n  const email = (r['Email'] || '').trim().toLowerCase();\n  const [first, ...rest] = (r['Full name'] || '').trim().split(/\\s+/);\n  return { json: { email, firstname: first || '', lastname: rest.join(' '), company: (r['Company'] || '').trim(), lead_source: 'Event' } };\n}).filter(i => i.json.email.includes('@'));"
+      },
+      "position": [
+        480,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
       "id": "0fce0d87-aad1-5857-afad-b6dd0b8785af",
       "name": "Every Monday 08:00",
       "parameters": {
@@ -82,6 +95,33 @@
       ],
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "slackApi": {
+          "id": "3",
+          "name": "Slack bot"
+        }
+      },
+      "executeOnce": true,
+      "id": "31db76f3-50a5-51d7-9fa7-0a112f61e50f",
+      "name": "Post summary to #marketing-ops",
+      "parameters": {
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#marketing-ops"
+        },
+        "otherOptions": {},
+        "select": "channel",
+        "text": "=Event leads synced: {{ $items().length }} contacts upserted to HubSpot."
+      },
+      "position": [
+        1200,
+        300
+      ],
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2
     },
     {
       "credentials": {
@@ -112,19 +152,6 @@
       ],
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5
-    },
-    {
-      "id": "cd21e04a-1a11-5514-9647-201d0d060739",
-      "name": "Clean + normalise",
-      "parameters": {
-        "jsCode": "return $input.all().map(item => {\n  const r = item.json;\n  const email = (r['Email'] || '').trim().toLowerCase();\n  const [first, ...rest] = (r['Full name'] || '').trim().split(/\\s+/);\n  return { json: { email, firstname: first || '', lastname: rest.join(' '), company: (r['Company'] || '').trim(), lead_source: 'Event' } };\n}).filter(i => i.json.email.includes('@'));"
-      },
-      "position": [
-        480,
-        300
-      ],
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2
     },
     {
       "id": "91be383f-f148-52d4-9f9a-d114e1a24674",
@@ -165,33 +192,6 @@
       ],
       "type": "n8n-nodes-base.hubspot",
       "typeVersion": 2.1
-    },
-    {
-      "credentials": {
-        "slackApi": {
-          "id": "3",
-          "name": "Slack bot"
-        }
-      },
-      "executeOnce": true,
-      "id": "31db76f3-50a5-51d7-9fa7-0a112f61e50f",
-      "name": "Post summary to #marketing-ops",
-      "parameters": {
-        "channelId": {
-          "__rl": true,
-          "mode": "name",
-          "value": "#marketing-ops"
-        },
-        "otherOptions": {},
-        "select": "channel",
-        "text": "=Event leads synced: {{ $items().length }} contacts upserted to HubSpot."
-      },
-      "position": [
-        1200,
-        300
-      ],
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.2
     }
   ],
   "pinData": {},
@@ -203,13 +203,13 @@
   },
   "tags": [
     {
-      "name": "marketing-ops"
-    },
-    {
       "name": "events"
     },
     {
       "name": "hubspot"
+    },
+    {
+      "name": "marketing-ops"
     }
   ]
 }

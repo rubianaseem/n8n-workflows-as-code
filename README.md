@@ -1,6 +1,6 @@
-# n8n Workflows as Code
+# n8n Workflows as Code (GTM Engineering)
 
-**Keep every n8n workflow in GitHub, see exactly what changed in plain English, and stop API keys and customer data from sneaking into your repo.**
+**Version GTM automations in GitHub, read diffs in plain English, stop secrets landing in git — and review workflow changes for CRM risk before they hit production.**
 
 > Built by Rubia Naseem, GTM Engineer (12+ yrs CRM/RevOps, HubSpot & Salesforce).
 
@@ -8,33 +8,32 @@
 
 ## The pain point
 
-I build a lot of GTM automation in n8n. Its version history lives inside n8n, the built-in Git sync is on the Business and Enterprise plans, and everyone else downloads a JSON file now and then. Backing up the JSON is the easy part. What I wanted was what a RevOps team cares about: *what did this change do to routing*, and *did someone just commit our HubSpot token*.
+n8n's built-in history lives inside n8n. Most teams download JSON now and then. Backups are easy. Governance is not: hard-coded HubSpot tokens in HTTP nodes, lifecycle writes with no error branch, and nobody owning the blast radius when an inbound router changes.
 
-- *"As far as I can tell there is no way to use git in conjunction with n8n other than to occasionally download a json "blueprint" of your workflow and keep a copy of it in a git repo. Not ideal obviously."* ([r/n8n: Version control for n8n?](https://www.reddit.com/r/n8n/comments/1lr56ri/version_control_for_n8n/))
-- *"So I'm new to N8N but I can code and I usually use git for version control while I code and I was wondering if there is a way to do it in N8N."* ([r/n8n: So how do i do version control in N8N? like git.](https://www.reddit.com/r/n8n/comments/1k6jhfe/so_how_do_i_do_version_control_in_n8n_like_git/))
+- *"Hardcoding API keys in nodes is a recipe for disaster (especially if you export/share blueprints)."* ([r/n8n: My Checklist For Moving from It Works to Production Ready](https://www.reddit.com/r/n8n/comments/1pswpkn/my_checklist_for_moving_from_it_works_to/))
+- *"Monitoring tells you a workflow ran. It doesn't tell you who answers for it."* ([r/n8n: Built a governance layer for n8n](https://www.reddit.com/r/n8n/comments/1vhsswf/built_a_governance_layer_for_n8n_who_owns_each/))
 
 ---
 
 ## What it does
 
-- **One command sync:** `python n8n_versioner.py sync` pulls exports, shows what changed, cleans, audits, and updates the inventory and changelog
-- **Diffs a human can read:** nodes added, removed and renamed, the exact setting that changed (`200 → 250`), and how the flow was rewired
-- **Clean, stable files:** strips the fields n8n changes on every save, so `git diff` only shows real changes
-- **Secret guard:** finds API keys typed straight into nodes, redacts them, and removes pinned test data that can hold real contacts
-- **Inventory page:** `WORKFLOWS.md` lists every workflow, its trigger, the systems it touches and its tags
-- **Works with no API key and no n8n connection:** sample exports are included, and Claude only writes the summary if you add a key
+- **Version pack:** `n8n_versioner.py` sync / diff / clean / secret redact / inventory for a multi-node GTM workflow pack (inbound routing, event-lead cleanup, closed-won handoff)
+- **Human diffs:** nodes added/removed/renamed, exact setting changes, rewires
+- **Secret guard:** finds API keys typed into nodes, redacts them, strips pinned test data
+- **GTM review agent:** `gtm_workflow_review.py` reviews a proposed workflow (or PR-style diff) for secrets, hard-coded emails, missing error branches, unsafe CRM lifecycle writes — writes a review brief + checklist CSV
+- **Works with no API key / no n8n connection** via `sample_exports/` and `sample_review/`; Claude only polishes summaries if you add a key
 
 ---
 
 ## Where each step runs
 
-1. **GitHub** holds the code and your workflow files. Clone it or click **Code → Download ZIP**.
-2. **n8n** is where your workflows run. Nothing here changes them; you download exports into `exports/`, or let the script fetch them with an n8n API key.
-3. **Terminal** is where you run `python n8n_versioner.py sync`. It cleans, checks and updates the files on your computer.
-4. **Claude is optional.** With an Anthropic key it writes the plain-English change summary; without one, built-in rules do. It all stays in the terminal.
-5. **You, then Git.** Read the summary, check `git diff`, then commit and push.
+1. **GitHub** holds the code and workflow JSON. Clone or download the ZIP.
+2. **n8n** is where workflows run. Nothing here changes them; you export into `exports/` or let sync pull with an n8n API key.
+3. **Terminal** runs `python n8n_versioner.py sync` and `python gtm_workflow_review.py`.
+4. **Claude is optional** for plain-English summaries / review polish.
+5. **You, then Git.** Read the review brief, fix blockers, commit.
 
-**This tool never writes to n8n.**
+**These tools never write to n8n.**
 
 ---
 
@@ -45,36 +44,50 @@ git clone https://github.com/rubianaseem/n8n-workflows-as-code.git
 cd n8n-workflows-as-code
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python n8n_versioner.py sync   # sample exports, no keys, no n8n needed
-git diff --stat
+python n8n_versioner.py sync          # sample exports, no keys
+python gtm_workflow_review.py --no-llm   # review the sample proposed change
 ```
 
 ---
 
 ## Example output
 
-From `python n8n_versioner.py sync` on the sample exports, with no API key:
+Review agent on the sample proposed inbound router (no API key):
 
 ```text
-=== What changed ===
-- Inbound lead routing: adds Enrich company domain, Old Slack DM (unused); edits Round robin owner, Segment by company size; rewires the flow.
-- CHANGED **Segment by company size**: `rules.values.1.conditions.conditions.0.rightValue`: 200 → 250
-
-=== Audit of the incoming exports (before cleaning) ===
-BLOCKED Inbound lead routing (Inbound lead routing.json, 10 nodes)
-     BLOCK: Bearer token typed into a header hard-coded in node 'Enrich company domain' (headerParameters.parameters.0.value). Move it into an n8n credential and rotate the key.
-2 blocking issue(s), 2 warning(s).
-
-=== Audit of what will be committed ===
-0 blocking issue(s), 3 warning(s).
+GTM WORKFLOW REVIEW  |  Inbound lead routing  |  built-in rules (no API key)
+Findings: 1+ block, several warn
+  BLOCK secrets_or_hygiene     Bearer token hard-coded in a header
+  BLOCK unsafe_crm_write       HubSpot: force lifecycle to customer
+  WARN  hardcoded_email        escalate to ae-oncall@acme.example
 ```
 
-After `clean`, the key is replaced with `__REDACTED_SECRET__` and the pinned data is gone. The token in the sample is fake.
+Files: `out/gtm_review_brief.md`, `out/gtm_review_checklist.csv`.
 
 ---
 
+## Commands cheat sheet
+
+```bash
+python n8n_versioner.py sync --source sample
+python n8n_versioner.py audit workflows/
+python gtm_workflow_review.py --no-llm
+python n8n_versioner.py review --no-llm   # same review via subcommand
+```
+
+## Sample GTM workflow pack
+
+Committed under `workflows/` (and raw samples under `sample_exports/`):
+
+- Inbound lead routing — form trigger, enrich, segment, round-robin owner
+- Event lead cleanup — post-event hygiene before CRM import
+- Closed-won handoff — CS kickoff on Closed Won
+
+`sample_review/` holds a deliberately risky proposed change so you can practise a GTM PR review without touching production n8n.
+
 ## More
 
-- [SETUP.md](SETUP.md): Claude, your real n8n workflows, switching on the GitHub check, extending it, troubleshooting
-- [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md): walk through `n8n_versioner.py` line by line
-- [docs/DETAILS.md](docs/DETAILS.md): all the pain-point quotes, full feature list, every command, the full example output, cost, swap the stack, customising, and how this runs today vs production
+- [SETUP.md](SETUP.md): n8n API key, Claude, CI example under `ci/` (not `.github/workflows`), extending rules
+- [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md): how a GTM eng versions automation and reviews a change
+- [docs/DETAILS.md](docs/DETAILS.md): commands, quotes, cost, stack swap, production notes
+- [WORKFLOWS.md](WORKFLOWS.md): generated inventory
